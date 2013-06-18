@@ -18,7 +18,7 @@ class Message(object):
 
 
 class UnusedImport(Message):
-    message = '%r imported but unused'
+    message = 'W402 %r imported but unused'
 
     def __init__(self, filename, loc, name):
         Message.__init__(self, filename, loc)
@@ -26,7 +26,7 @@ class UnusedImport(Message):
 
 
 class RedefinedWhileUnused(Message):
-    message = 'redefinition of unused %r from line %r'
+    message = 'W801 redefinition of unused %r from line %r'
 
     def __init__(self, filename, loc, name, orig_loc):
         Message.__init__(self, filename, loc)
@@ -34,7 +34,7 @@ class RedefinedWhileUnused(Message):
 
 
 class RedefinedInListComp(Message):
-    message = 'list comprehension redefines %r from line %r'
+    message = 'W807 list comprehension redefines %r from line %r'
 
     def __init__(self, filename, loc, name, orig_loc):
         Message.__init__(self, filename, loc)
@@ -42,7 +42,7 @@ class RedefinedInListComp(Message):
 
 
 class ImportShadowedByLoopVar(Message):
-    message = 'import %r from line %r shadowed by loop variable'
+    message = 'W403 import %r from line %r shadowed by loop variable'
 
     def __init__(self, filename, loc, name, orig_loc):
         Message.__init__(self, filename, loc)
@@ -50,7 +50,7 @@ class ImportShadowedByLoopVar(Message):
 
 
 class ImportStarUsed(Message):
-    message = "'from %s import *' used; unable to detect undefined names"
+    message = "W404 'from %s import *' used; unable to detect undefined names"
 
     def __init__(self, filename, loc, modname):
         Message.__init__(self, filename, loc)
@@ -58,7 +58,7 @@ class ImportStarUsed(Message):
 
 
 class UndefinedName(Message):
-    message = 'undefined name %r'
+    message = 'W802 undefined name %r'
 
     def __init__(self, filename, loc, name):
         Message.__init__(self, filename, loc)
@@ -66,7 +66,7 @@ class UndefinedName(Message):
 
 
 class DoctestSyntaxError(Message):
-    message = 'syntax error in doctest'
+    message = 'W407 syntax error in doctest'
 
     def __init__(self, filename, loc, position=None):
         Message.__init__(self, filename, loc)
@@ -76,7 +76,7 @@ class DoctestSyntaxError(Message):
 
 
 class UndefinedExport(Message):
-    message = 'undefined name %r in __all__'
+    message = 'W803 undefined name %r in __all__'
 
     def __init__(self, filename, loc, name):
         Message.__init__(self, filename, loc)
@@ -84,8 +84,8 @@ class UndefinedExport(Message):
 
 
 class UndefinedLocal(Message):
-    message = ('local variable %r (defined in enclosing scope on line %r) '
-               'referenced before assignment')
+    message = ('W804 local variable %r (defined in enclosing scope on line %r)'
+               ' referenced before assignment')
 
     def __init__(self, filename, loc, name, orig_loc):
         Message.__init__(self, filename, loc)
@@ -93,7 +93,7 @@ class UndefinedLocal(Message):
 
 
 class DuplicateArgument(Message):
-    message = 'duplicate argument %r in function definition'
+    message = 'W805 duplicate argument %r in function definition'
 
     def __init__(self, filename, loc, name):
         Message.__init__(self, filename, loc)
@@ -101,7 +101,7 @@ class DuplicateArgument(Message):
 
 
 class Redefined(Message):
-    message = 'redefinition of %r from line %r'
+    message = 'W806 redefinition of %r from line %r'
 
     def __init__(self, filename, loc, name, orig_loc):
         Message.__init__(self, filename, loc)
@@ -109,7 +109,7 @@ class Redefined(Message):
 
 
 class LateFutureImport(Message):
-    message = 'future import(s) %r after other statements'
+    message = 'W405 future import(s) %r after other statements'
 
     def __init__(self, filename, loc, names):
         Message.__init__(self, filename, loc)
@@ -121,8 +121,15 @@ class UnusedVariable(Message):
     Indicates that a variable has been explicity assigned to but not actually
     used.
     """
-    message = 'local variable %r is assigned to but never used'
+    message = 'W806 local variable %r is assigned to but never used'
 
     def __init__(self, filename, loc, names):
         Message.__init__(self, filename, loc)
         self.message_args = (names,)
+
+
+class UsesLocals(Message):
+    """
+    Warns against using locals
+    """
+    message = 'W406 locals() used; unable to detect undefined names'

@@ -45,7 +45,7 @@ else:
     ast_TryExcept = ast.TryExcept
     ast_TryFinally = ast.TryFinally
 
-from pyflakes import messages
+from . import messages
 
 
 if PY2:
@@ -685,6 +685,9 @@ class Checker(object):
                     and isinstance(node.parent, ast.Call)):
                 # we are doing locals() call in current scope
                 self.scope.usesLocals = True
+                # warn against using locals
+                self.report(messages.UsesLocals, node.lineno)
+
         elif isinstance(node.ctx, (ast.Store, ast.AugStore)):
             self.handleNodeStore(node)
         elif isinstance(node.ctx, ast.Del):
