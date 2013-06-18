@@ -41,7 +41,7 @@ else:
     ast_TryExcept = ast.TryExcept
     ast_TryFinally = ast.TryFinally
 
-from pyflakes import messages
+from . import messages
 
 
 class Binding(object):
@@ -590,6 +590,8 @@ class Checker(object):
         if node.id == 'locals' and isinstance(node.parent, ast.Call):
             # we are doing locals() call in current scope
             self.scope.usesLocals = True
+            # warn against using locals
+            self.report(messages.UsesLocals, node.lineno)
         # Locate the name in locals / function / globals scopes.
         if isinstance(node.ctx, (ast.Load, ast.AugLoad)):
             self.handleNodeLoad(node)

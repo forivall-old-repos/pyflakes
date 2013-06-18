@@ -6,8 +6,8 @@ import sys
 import os
 import _ast
 
-from pyflakes import checker
-from pyflakes import reporter as modReporter
+from . import checker
+from . import reporter as modReporter
 
 __all__ = ['check', 'checkPath', 'checkRecursive', 'iterSourceCode', 'main']
 
