@@ -1,6 +1,2 @@
 
-__version__ = '0.6.1'
-
-from .checker import Checker
-from .api import *
-from . import reporter
+__version__ = '0.7.3a0'

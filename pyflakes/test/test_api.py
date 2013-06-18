@@ -7,12 +7,8 @@ import sys
 import shutil
 import subprocess
 import tempfile
-try:
-    from io import StringIO
-except ImportError:
-    from StringIO import StringIO
 
-from unittest2 import skipIf, TestCase
+from unittest import skipIf, TestCase
 
 from pyflakes.messages import UnusedImport
 from pyflakes.reporter import Reporter
@@ -21,7 +17,11 @@ from pyflakes.api import (
     checkRecursive,
     iterSourceCode,
 )
-if sys.version_info >= (3,):
+
+if sys.version_info < (3,):
+    from cStringIO import StringIO
+else:
+    from io import StringIO
     unichr = chr
 
 
@@ -36,9 +36,18 @@ def withStderrTo(stderr, f, *args, **kwargs):
         sys.stderr = outer
 
 
+class Node(object):
+    """
+    Mock an AST node.
+    """
+    def __init__(self, lineno, col_offset=0):
+        self.lineno = lineno
+        self.col_offset = col_offset
+
+
 class LoggingReporter(object):
     """
-    Implementation of Reporter that just appends any errors to a list.
+    Implementation of Reporter that just appends any error to a list.
     """
 
     def __init__(self, log):
@@ -49,18 +58,14 @@ class LoggingReporter(object):
         """
         self.log = log
 
-
     def flake(self, message):
         self.log.append(('flake', str(message)))
-
 
     def unexpectedError(self, filename, message):
         self.log.append(('unexpectedError', filename, message))
 
-
     def syntaxError(self, filename, msg, lineno, offset, line):
         self.log.append(('syntaxError', filename, msg, lineno, offset, line))
-
 
 
 class TestIterSourceCode(TestCase):
@@ -81,13 +86,11 @@ class TestIterSourceCode(TestCase):
         fd.close()
         return fpath
 
-
     def test_emptyDirectory(self):
         """
         There are no Python files in an empty directory.
         """
         self.assertEqual(list(iterSourceCode([self.tempdir])), [])
-
 
     def test_singleFile(self):
         """
@@ -97,14 +100,12 @@ class TestIterSourceCode(TestCase):
         childpath = self.makeEmptyFile('foo.py')
         self.assertEqual(list(iterSourceCode([self.tempdir])), [childpath])
 
-
     def test_onlyPythonSource(self):
         """
         Files that are not Python source files are not included.
         """
         self.makeEmptyFile('foo.pyc')
         self.assertEqual(list(iterSourceCode([self.tempdir])), [])
-
 
     def test_recurses(self):
         """
@@ -119,7 +120,6 @@ class TestIterSourceCode(TestCase):
         self.assertEqual(
             sorted(iterSourceCode([self.tempdir])),
             sorted([apath, bpath, cpath]))
-
 
     def test_multipleDirectories(self):
         """
@@ -136,7 +136,6 @@ class TestIterSourceCode(TestCase):
             sorted(iterSourceCode([foopath, barpath])),
             sorted([apath, bpath]))
 
-
     def test_explicitFiles(self):
         """
         If one of the paths given to L{iterSourceCode} is not a directory but
@@ -145,7 +144,6 @@ class TestIterSourceCode(TestCase):
         epath = self.makeEmptyFile('e.py')
         self.assertEqual(list(iterSourceCode([epath])),
                          [epath])
-
 
 
 class TestReporter(TestCase):
@@ -169,7 +167,6 @@ class TestReporter(TestCase):
              "     ^\n"),
             err.getvalue())
 
-
     def test_syntaxErrorNoOffset(self):
         """
         C{syntaxError} doesn't include a caret pointing to the error if
@@ -184,7 +181,6 @@ class TestReporter(TestCase):
              "bad line of source\n"),
             err.getvalue())
 
-
     def test_multiLineSyntaxError(self):
         """
         If there's a multi-line syntax error, then we only report the last
@@ -195,7 +191,7 @@ class TestReporter(TestCase):
         lines = [
             'bad line of source',
             'more bad lines of source',
-            ]
+        ]
         reporter = Reporter(None, err)
         reporter.syntaxError('foo.py', 'a problem', 3, len(lines[0]) + 5,
                              '\n'.join(lines))
@@ -204,7 +200,6 @@ class TestReporter(TestCase):
              lines[-1] + "\n" +
              "     ^\n"),
             err.getvalue())
-
 
     def test_unexpectedError(self):
         """
@@ -215,7 +210,6 @@ class TestReporter(TestCase):
         reporter.unexpectedError('source.py', 'error message')
         self.assertEquals('source.py: error message\n', err.getvalue())
 
-
     def test_flake(self):
         """
         C{flake} reports a code warning from Pyflakes.  It is exactly the
@@ -223,10 +217,9 @@ class TestReporter(TestCase):
         """
         out = StringIO()
         reporter = Reporter(out, None)
-        message = UnusedImport('foo.py', 42, 'bar')
+        message = UnusedImport('foo.py', Node(42), 'bar')
         reporter.flake(message)
         self.assertEquals(out.getvalue(), "%s\n" % (message,))
-
 
 
 class CheckTests(TestCase):
@@ -246,7 +239,6 @@ class CheckTests(TestCase):
         fd.close()
         return fpath
 
-
     def assertHasErrors(self, path, errorList):
         """
         Assert that C{path} causes errors.
@@ -258,7 +250,6 @@ class CheckTests(TestCase):
         count = withStderrTo(err, checkPath, path)
         self.assertEquals(
             (count, err.getvalue()), (len(errorList), ''.join(errorList)))
-
 
     def getErrors(self, path):
         """
@@ -274,11 +265,9 @@ class CheckTests(TestCase):
         count = checkPath(path, reporter)
         return count, log
 
-
     def test_legacyScript(self):
         from pyflakes.scripts import pyflakes as script_pyflakes
         self.assertIs(script_pyflakes.checkPath, checkPath)
-
 
     def test_missingTrailingNewline(self):
         """
@@ -289,7 +278,6 @@ class CheckTests(TestCase):
         fName = self.makeTempFile("def foo():\n\tpass\n\t")
         self.assertHasErrors(fName, [])
 
-
     def test_checkPathNonExisting(self):
         """
         L{checkPath} handles non-existing files.
@@ -299,7 +287,6 @@ class CheckTests(TestCase):
         self.assertEquals(
             errors,
             [('unexpectedError', 'extremo', 'No such file or directory')])
-
 
     def test_multilineSyntaxError(self):
         """
@@ -332,13 +319,12 @@ def baz():
 
         sourcePath = self.makeTempFile(source)
         self.assertHasErrors(
-            sourcePath, ["""\
+            sourcePath,
+            ["""\
 %s:8: invalid syntax
     '''quux'''
            ^
-"""
-                % (sourcePath,)])
-
+""" % (sourcePath,)])
 
     def test_eofSyntaxError(self):
         """
@@ -353,7 +339,6 @@ def baz():
 def foo(
          ^
 """ % (sourcePath,)])
-
 
     def test_nonDefaultFollowsDefaultSyntaxError(self):
         """
@@ -374,7 +359,6 @@ def foo(bar=baz, bax):
 def foo(bar=baz, bax):
 %s""" % (sourcePath, last_line)])
 
-
     def test_nonKeywordAfterKeywordSyntaxError(self):
         """
         Source which has a non-keyword argument after a keyword argument should
@@ -393,23 +377,26 @@ foo(bar=baz, bax)
 foo(bar=baz, bax)
 %s""" % (sourcePath, last_line)])
 
-
     def test_invalidEscape(self):
         """
         The invalid escape syntax raises ValueError in Python 2
         """
+        ver = sys.version_info
         # ValueError: invalid \x escape
         sourcePath = self.makeTempFile(r"foo = '\xyz'")
-        if sys.version_info < (3,):
+        if ver < (3,):
             decoding_error = "%s: problem decoding source\n" % (sourcePath,)
         else:
+            last_line = '       ^\n' if ver >= (3, 2) else ''
+            # Column has been "fixed" since 3.2.4 and 3.3.1
+            col = 1 if ver >= (3, 3, 1) or ((3, 2, 4) <= ver < (3, 3)) else 2
             decoding_error = """\
-%s:1: (unicode error) 'unicodeescape' codec can't decode bytes in position 0-2: truncated \\xXX escape
+%s:1: (unicode error) 'unicodeescape' codec can't decode bytes \
+in position 0-%d: truncated \\xXX escape
 foo = '\\xyz'
-%s""" % (sourcePath, '       ^\n' if sys.version_info >= (3, 2) else '')
+%s""" % (sourcePath, col, last_line)
         self.assertHasErrors(
             sourcePath, [decoding_error])
-
 
     def test_permissionDenied(self):
         """
@@ -424,7 +411,6 @@ foo = '\\xyz'
             errors,
             [('unexpectedError', sourcePath, "Permission denied")])
 
-
     def test_pyflakesWarning(self):
         """
         If the source file has a pyflakes warning, this is reported as a
@@ -434,8 +420,7 @@ foo = '\\xyz'
         count, errors = self.getErrors(sourcePath)
         self.assertEquals(count, 1)
         self.assertEquals(
-            errors, [('flake', str(UnusedImport(sourcePath, 1, 'foo')))])
-
+            errors, [('flake', str(UnusedImport(sourcePath, Node(1), 'foo')))])
 
     @skipIf(sys.version_info >= (3,), "not relevant")
     def test_misencodedFileUTF8(self):
@@ -452,7 +437,6 @@ x = "%s"
         self.assertHasErrors(
             sourcePath, ["%s: problem decoding source\n" % (sourcePath,)])
 
-
     def test_misencodedFileUTF16(self):
         """
         If a source file contains bytes which cannot be decoded, this is
@@ -466,7 +450,6 @@ x = "%s"
         sourcePath = self.makeTempFile(source)
         self.assertHasErrors(
             sourcePath, ["%s: problem decoding source\n" % (sourcePath,)])
-
 
     def test_checkRecursive(self):
         """
@@ -489,9 +472,9 @@ x = "%s"
         self.assertEqual(warnings, 2)
         self.assertEqual(
             sorted(log),
-            sorted([('flake', str(UnusedImport(file1, 1, 'baz'))),
+            sorted([('flake', str(UnusedImport(file1, Node(1), 'baz'))),
                     ('flake',
-                     str(UnusedImport(file2, 1, 'contraband')))]))
+                     str(UnusedImport(file2, Node(1), 'contraband')))]))
 
 
 class IntegrationTests(TestCase):
@@ -513,7 +496,6 @@ class IntegrationTests(TestCase):
         import pyflakes
         package_dir = os.path.dirname(pyflakes.__file__)
         return os.path.join(package_dir, '..', 'bin', 'pyflakes')
-
 
     def runPyflakes(self, paths, stdin=None):
         """
@@ -542,7 +524,6 @@ class IntegrationTests(TestCase):
             stderr = stderr.decode('utf-8')
         return (stdout, stderr, rv)
 
-
     def test_goodFile(self):
         """
         When a Python source file is all good, the return code is zero and no
@@ -553,7 +534,6 @@ class IntegrationTests(TestCase):
         d = self.runPyflakes([self.tempfilepath])
         self.assertEqual(d, ('', '', 0))
 
-
     def test_fileWithFlakes(self):
         """
         When a Python source file has warnings, the return code is non-zero
@@ -563,8 +543,8 @@ class IntegrationTests(TestCase):
         fd.write("import contraband\n".encode('ascii'))
         fd.close()
         d = self.runPyflakes([self.tempfilepath])
-        self.assertEqual(d, ("%s\n" % UnusedImport(self.tempfilepath, 1, 'contraband'), '', 1))
-
+        expected = UnusedImport(self.tempfilepath, Node(1), 'contraband')
+        self.assertEqual(d, ("%s\n" % expected, '', 1))
 
     def test_errors(self):
         """
@@ -573,12 +553,13 @@ class IntegrationTests(TestCase):
         printed to stderr.
         """
         d = self.runPyflakes([self.tempfilepath])
-        self.assertEqual(d, ('', '%s: No such file or directory\n' % (self.tempfilepath,), 1))
-
+        error_msg = '%s: No such file or directory\n' % (self.tempfilepath,)
+        self.assertEqual(d, ('', error_msg, 1))
 
     def test_readFromStdin(self):
         """
         If no arguments are passed to C{pyflakes} then it reads from stdin.
         """
         d = self.runPyflakes([], stdin='import contraband'.encode('ascii'))
-        self.assertEqual(d, ("%s\n" % UnusedImport('<stdin>', 1, 'contraband'), '', 1))
+        expected = UnusedImport('<stdin>', Node(1), 'contraband')
+        self.assertEqual(d, ("%s\n" % expected, '', 1))
